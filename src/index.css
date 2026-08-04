@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-ink-900 text-slate-100 antialiased;
+    /* Keep content clear of the notch and the home indicator. */
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Numeric inputs on iOS zoom unless the font is at least 16px. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-ink-800 border border-ink-700 p-4;
+  }
+
+  .muted {
+    @apply text-slate-400;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .btn {
+    @apply rounded-xl px-4 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-ink-900;
+  }
+
+  .btn-ghost {
+    @apply btn bg-ink-700 text-slate-100;
+  }
+}
