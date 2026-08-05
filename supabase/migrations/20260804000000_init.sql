@@ -195,6 +195,12 @@ begin
 end;
 $$;
 
+-- This is a trigger function and must never be reachable through the REST API.
+-- It has to run as SECURITY DEFINER (it writes a profile for a user that does not
+-- exist yet), so leaving EXECUTE open would expose a privileged function at
+-- /rest/v1/rpc/handle_new_user.
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users

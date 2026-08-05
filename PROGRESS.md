@@ -19,10 +19,21 @@ Running log of what is built, what was decided, and what is deliberately left.
 `npm test` passes 45/45, and the Today/Log components were rendered in a headless
 browser against mock data to check the chart, the verdict cards and the stepper.
 
-**Not verified here — needs your credentials:** the Supabase project does not
-exist yet, so the migration has not been applied and nothing has been deployed to
-Vercel. Both are documented as single commands in `README.md`. Sign-in, RLS
-behaviour and real sync are untested until that is done.
+**Backend is live.** Supabase project `Vector` (ref `esfxrnqwkulqhxwgyezb`,
+`ap-south-1`) is created and migrated. Verified by querying `pg_class`: all nine
+tables have `relrowsecurity = true` with one owner-only policy each. The security
+advisor returns zero findings.
+
+**Not deployed.** The Vercel token connected to this session lacks
+project-creation permission (`403 forbidden`), so the frontend is not hosted yet.
+Nothing was created there. Import the repo at
+[vercel.com/new](https://vercel.com/new) — `vercel.json` already carries the build
+settings; add the two `VITE_` env vars in project settings.
+
+**Still unverified: sign-in and real sync.** This container's network policy
+denies outbound HTTPS to `*.supabase.co` (403 at the gateway — the MCP tools
+reach Supabase over a different path, which is why the migrations applied), so no
+end-to-end auth or write round-trip has been exercised from here.
 
 ---
 
@@ -119,6 +130,16 @@ Future options, **not built**:
 
 A `src/lib/importers/` seam is reserved for option 2 — parsers there should return
 `DailyLogInput[]` and go through the same queue as manual entry.
+
+---
+
+**`handle_new_user()` is not callable over REST.** Supabase's security advisor
+flagged it: the function must be `SECURITY DEFINER` (it writes a profile row for a
+user that does not exist yet), but PostgREST exposes every public function as an
+RPC endpoint, so `anon` could have invoked a privileged function at
+`/rest/v1/rpc/handle_new_user`. `EXECUTE` is now revoked from `public`, `anon` and
+`authenticated`; the trigger still fires because triggers do not check EXECUTE.
+The advisor is clean after the fix.
 
 ---
 

@@ -58,6 +58,13 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 ## Backend setup (Supabase)
 
+> **A project is already provisioned and migrated:** `Vector`, ref
+> `esfxrnqwkulqhxwgyezb`, region `ap-south-1`. All nine tables, their RLS
+> policies and the private photo bucket are live. Copy the URL and anon key from
+> **Project Settings → API** into `.env` and skip to step 3.
+
+To stand up a fresh one instead:
+
 1. Create a project at [supabase.com](https://supabase.com).
 2. Apply the schema — either link the CLI and push:
 
