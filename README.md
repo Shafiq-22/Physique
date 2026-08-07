@@ -33,20 +33,32 @@ The service worker is disabled in dev. To test install/offline, run
 
 ## Environment
 
-Two variables, both client-side and both publishable:
+**Nothing is required to run this app.** The Supabase URL and publishable key are
+baked into `src/lib/supabase.ts` as defaults, so a clone builds and runs with no
+setup at all.
+
+That is a deliberate trade-off. Vite inlines `import.meta.env.*` at build time, so
+an unset or wrongly-scoped variable yields a bundle with no backend — a build that
+succeeds and then boots to a setup card, with nothing in the logs to explain it.
+For two values that are public by design, that failure mode costs more than the
+configurability is worth.
+
+To point a fork at a different project, set either variable and it wins over the
+default:
 
 ```
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon key>
+VITE_SUPABASE_ANON_KEY=<publishable or anon key>
 ```
 
-Find them in **Supabase → Project Settings → API**. Without them the app renders a
-setup card rather than failing blank.
+Find them in **Supabase → Project Settings → API**. Note that Vite reads `.env` —
+**not** `.env.example`, which is documentation only.
 
-The anon key is safe in the bundle **only because row-level security stands behind
-it** — every table restricts access to `user_id = auth.uid()`. Never put a
-service-role key or a third-party API key in `.env`; those go in Edge Function
-secrets:
+The publishable key is safe in the bundle **only because row-level security stands
+behind it** — every table restricts access to `user_id = auth.uid()`. Anyone can
+read it from the deployed JS either way; the Postgres policies are the security
+boundary, not the secrecy of that string. Never put a service-role key or a
+third-party API key in the frontend; those go in Edge Function secrets:
 
 ```bash
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
