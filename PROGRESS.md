@@ -98,6 +98,15 @@ true value so both readings are satisfied.
 **One active phase at a time**, enforced by a partial unique index
 (`phases_one_active_per_user`), so starting a phase closes the previous one.
 
+**Supabase URL and publishable key are baked into the source, not env-only.**
+Vite inlines `import.meta.env.*` at build time, so an unset or wrongly-scoped
+variable yields a bundle with no backend — a build that succeeds cleanly and then
+boots to the setup card, with nothing in the logs pointing at the cause. This bit
+the first Vercel deploy. Both values are public by design (the key is readable in
+devtools on the deployed site regardless), and RLS is the actual security
+boundary, so the configurability was not worth the silent-failure mode. Env vars
+still take precedence when set.
+
 **Chart colours are identity, not status.** The trend line is blue (`#3987e5`),
 not the app's green accent — a green line would imply "good" regardless of what
 the data says. Raw daily points are deliberately recessive gray behind it.
