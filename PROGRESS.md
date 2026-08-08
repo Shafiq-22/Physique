@@ -201,17 +201,21 @@ React re-renders, and a closure over `value` makes every one of them compute fro
 the same stale number. Ten rapid presses collapsed into one. Verified fixed by
 driving it in a headless browser.
 
-**Sign-in is a typed code, not a magic link.** An emailed link cannot reach an
+**Sign-in is email + password, with a typed code as the backup.** An emailed link cannot reach an
 installed iOS PWA: tapping it opens Safari, a separate browsing context with its
 own storage, so the session is created somewhere the app cannot read. PKCE
 compounds it, since the code verifier belongs to whichever context began the
 sign-in. A 6-digit code is exchanged inside the app, so both halves happen in the
 same context. `autocomplete="one-time-code"` lets iOS offer it straight from Mail.
 
-This needs `{{ .Token }}` in the Supabase Magic Link email template — the default
-only carries the link. Because that is a dashboard change the app cannot make or
-verify, **password sign-in is offered alongside it** as the zero-configuration
-path, with "Set password" in Settings.
+Password is the default: it needs no email round-trip and no Supabase
+configuration, and behaves identically in a tab and an installed app. The code
+path is kept for a forgotten password, and needs `{{ .Token }}` added to the
+Supabase Magic Link email template — the default only carries the link.
+
+Account passwords are **never stored in this repository**. The initial one was
+set directly against `auth.users` with bcrypt via pgcrypto and communicated out
+of band.
 
 **The app reloads itself when a new service worker takes over.** With no address
 bar, an installed PWA can otherwise sit on a stale build indefinitely — which

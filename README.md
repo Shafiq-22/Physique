@@ -93,12 +93,15 @@ To stand up a fresh one instead:
    trigger that gives each new auth user a `profiles` row.
 3. **Auth → URL Configuration**: set Site URL to your deployed origin and add
    `http://localhost:5173` to Redirect URLs so the emailed link works in dev.
-4. **Auth → Emails → Magic Link**: add `{{ .Token }}` to the template (see below).
-5. Sign in with your email — the first sign-in creates the user and profile row.
+4. Optional, for the emailed-code fallback: **Auth → Emails → Magic Link**, add
+   `{{ .Token }}` to the template (see below).
+5. Sign in — the first sign-in creates the user and profile row.
 
 ### Sign-in and the installed PWA
 
-Sign-in is by **6-digit emailed code**, with a password as an alternative.
+Sign-in is by **email and password**, with a 6-digit emailed code as the backup.
+Password is the default because it needs no email round-trip and behaves
+identically in a browser tab and an installed app.
 
 The emailed *link* cannot sign you into an installed iOS PWA. Tapping it opens
 Safari, which is a separate browsing context with its own storage, so the session
@@ -116,8 +119,8 @@ token. In **Supabase → Authentication → Emails → Magic Link**, add a line:
 Supabase's default template only has `{{ .ConfirmationURL }}`, so without this
 edit no code is sent.
 
-A password needs no configuration at all — set one from **Settings → Password**
-once signed in, then use "Use a password instead" on the sign-in screen.
+The password path needs no Supabase configuration at all. Change it from
+**Settings → Password** at any time.
 
 ---
 

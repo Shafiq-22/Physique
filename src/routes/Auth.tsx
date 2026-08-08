@@ -10,23 +10,23 @@ const isStandalone = (): boolean =>
 const CODE_LENGTH = 6;
 
 /**
- * Email sign-in with a typed code.
+ * Password sign-in, with an emailed code as the backup.
  *
  * A magic link cannot work in an installed iOS PWA: tapping the link in Mail
- * opens **Safari**, which is a separate browsing context with its own storage,
- * so the session lands somewhere the app can never read. PKCE compounds it — the
- * code verifier is written by whichever context started the sign-in.
+ * opens **Safari**, a separate browsing context with its own storage, so the
+ * session lands somewhere the app can never read. PKCE compounds it — the code
+ * verifier is written by whichever context started the sign-in.
  *
- * A one-time code sidesteps the whole problem: it is typed into the app, so the
- * exchange happens in the same context that will hold the session. The link
- * still works for browser use, so both paths are offered and the code is
- * emphasised when we know we are installed.
+ * A password has neither problem and needs no email round-trip at all, so it is
+ * the default. The emailed one-time code stays available for a forgotten
+ * password; it also works inside the PWA, because it is typed into the app
+ * rather than followed from another one.
  */
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const [step, setStep] = useState<'email' | 'code' | 'password'>('email');
+  const [step, setStep] = useState<'email' | 'code' | 'password'>('password');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [resentAt, setResentAt] = useState<number | null>(null);
@@ -148,7 +148,7 @@ export default function Auth() {
             }}
             className="w-full pt-1 text-sm font-medium text-sky-300"
           >
-            Use a password instead
+            Sign in with a password instead
           </button>
         </form>
       ) : step === 'password' ? (
@@ -179,8 +179,8 @@ export default function Auth() {
           </button>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <p className="pt-1 text-xs muted">
-            Set a password from Settings once you are signed in. Passwords work everywhere,
-            including the installed app.
+            Change it any time from Settings. Passwords work everywhere, including the installed
+            app, with no email round-trip.
           </p>
           <button
             type="button"
@@ -190,7 +190,7 @@ export default function Auth() {
             }}
             className="w-full text-sm font-medium text-sky-300"
           >
-            Email me a code instead
+            Forgot it? Email me a code instead
           </button>
         </form>
       ) : (
