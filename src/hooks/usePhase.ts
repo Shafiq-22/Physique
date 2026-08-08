@@ -38,6 +38,7 @@ export function useStartPhase() {
       phase_type: PhaseType;
       target_kcal?: number;
       protein_g?: number;
+      target_weekly_change_kg?: number;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -61,7 +62,7 @@ export function useStartPhase() {
           start_date: today,
           target_kcal: opts.target_kcal ?? defaults.kcal,
           protein_g: opts.protein_g ?? defaults.protein_g,
-          target_weekly_change_kg: (band[0] + band[1]) / 2,
+          target_weekly_change_kg: opts.target_weekly_change_kg ?? (band[0] + band[1]) / 2,
         })
         .select()
         .single();

@@ -1,6 +1,6 @@
 /** Shared types mirroring the Postgres schema in `supabase/migrations`. */
 
-export type PhaseType = 'cut' | 'maintain' | 'gain' | 'mini_cut';
+export type PhaseType = 'cut' | 'maintain' | 'gain' | 'mini_cut' | 'recomp';
 export type Pose = 'front' | 'side' | 'back';
 export type RecommendationScope = 'weekly' | 'monthly' | 'deload' | 'alert';
 export type Severity = 'info' | 'warn' | 'high';

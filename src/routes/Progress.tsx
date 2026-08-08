@@ -8,7 +8,8 @@ import { TrendCard } from '../components/TrendCard';
 import { MetricSparkline, type SparkPoint } from '../components/MetricSparkline';
 import { PhotoCompare } from '../components/PhotoCompare';
 import { adonisRatio, latestMeasurement, waistToHeight } from '../lib/analytics';
-import { AESTHETICS, PROFILE } from '../lib/config';
+import { AESTHETICS } from '../lib/config';
+import { useHeightCm } from '../hooks/useProfile';
 import { shortLabel } from '../lib/dates';
 import type { Measurement } from '../lib/types';
 
@@ -37,6 +38,7 @@ export default function Progress() {
   const { data: photos } = usePhotos();
   const { data: benchmarks } = useBenchmarks();
   const { data: sets } = useWorkoutSets();
+  const heightCm = useHeightCm();
   const { series, delta } = useTrend(logs);
 
   const latest = latestMeasurement(measurements ?? []);
@@ -46,7 +48,7 @@ export default function Progress() {
       : null;
   const wth =
     latest && latest.waist_cm !== null
-      ? waistToHeight(latest.waist_cm, PROFILE.HEIGHT_CM)
+      ? waistToHeight(latest.waist_cm, heightCm)
       : null;
 
   const seriesFor = (key: keyof Measurement): SparkPoint[] =>

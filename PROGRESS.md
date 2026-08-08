@@ -14,29 +14,78 @@ Running log of what is built, what was decided, and what is deliberately left.
 | 3 — Workouts + PR detection | ✅ Built |
 | 4 — Measurements, photos, aesthetics | ✅ Built |
 | 5 — Full engine + Weekly Review | ✅ Built |
+| 6 — Weight-derived targets, rotary dials, exercise library | ✅ Built |
 
 Live at `physique-green.vercel.app`, backed by Supabase project `Vector`
 (`esfxrnqwkulqhxwgyezb`).
 
 **Verified here:** `npm run build` passes (typecheck + bundle + service worker),
-`npm test` passes 45/45, and the Today/Log components were rendered in a headless
-browser against mock data to check the chart, the verdict cards and the stepper.
+`npm test` passes 77/77, and every screen's components were rendered and driven
+in a headless browser against mock data — including scripted drags, keypresses
+and rapid input on the dial.
 
 **Backend is live.** Supabase project `Vector` (ref `esfxrnqwkulqhxwgyezb`,
-`ap-south-1`) is created and migrated. Verified by querying `pg_class`: all nine
-tables have `relrowsecurity = true` with one owner-only policy each. The security
-advisor returns zero findings.
-
-**Not deployed.** The Vercel token connected to this session lacks
-project-creation permission (`403 forbidden`), so the frontend is not hosted yet.
-Nothing was created there. Import the repo at
-[vercel.com/new](https://vercel.com/new) — `vercel.json` already carries the build
-settings; add the two `VITE_` env vars in project settings.
+`ap-south-1`), migrated. Verified by querying `pg_class`: all nine tables have
+`relrowsecurity = true` with one owner-only policy each. Security advisor: clean.
 
 **Still unverified: sign-in and real sync.** This container's network policy
-denies outbound HTTPS to `*.supabase.co` (403 at the gateway — the MCP tools
-reach Supabase over a different path, which is why the migrations applied), so no
-end-to-end auth or write round-trip has been exercised from here.
+denies outbound HTTPS to `*.supabase.co` and `*.vercel.app` (403 at the gateway —
+the MCP tools reach both over a different path, which is why migrations and
+deploys work). No end-to-end auth, write round-trip, or photo upload has been
+exercised from here.
+
+---
+
+## Weight-derived targets (Phase 6)
+
+Nothing about the plan is a constant any more. `lib/targets.ts` derives:
+
+- **Rate bands as % of bodyweight.** A 0.5 kg/week loss is gentle at 100 kg and
+  aggressive at 60 kg; the rate that actually protects muscle is proportional.
+  The percentages reproduce the blueprint's original kg figures at ~82 kg and
+  then keep pace as the weight moves.
+- **Calories as an offset from measured expenditure.** Target rate × 7,700 ÷ 7
+  gives the daily deficit or surplus, applied to the adaptive TDEE (or Mifflin
+  until that exists). Two people at the same weight with different metabolisms
+  get different targets — which is the whole point of learning TDEE.
+- **Protein as g/kg**, capped at 2.4 g/kg.
+- A **`MIN_SAFE_KCAL` floor of 1,500**, whatever the arithmetic asks for.
+
+`evaluateWeekly` now takes the derived band as an argument; the config constants
+are only the fallback for before any weight is logged.
+
+**A `recomp` phase was added** — holding scale weight while trading fat for
+muscle. It is not a flavour of maintenance: it carries its own protein target
+(2.2 g/kg) and is explicitly judged by the tape rather than the scale, so a
+steady week returns "Weight steady — exactly right for a recomp." Needed a
+migration, since the DB constraint only allowed four phase types.
+
+**Height is now a real input** on the Settings screen, stored in `profiles`, and
+waist-to-height reads it instead of the config constant.
+
+---
+
+## Input: rotary dial (Phase 6)
+
+`RotaryDial` replaces the stepper for every numeric measurement. Three ways in,
+because each is fastest for a different job: drag the ring for relative
+adjustment, type in the centre when you know the number, tap ± for one exact
+step. The drag tracks *accumulated angle*, not absolute position, so grabbing it
+anywhere never jumps the value — it behaves like a jog wheel, and sub-step
+rotation is carried rather than discarded so slow drags still register.
+
+---
+
+## Exercise library (Phase 6)
+
+`lib/exerciseLibrary.ts` holds ~60 curated exercises indexed by body part,
+equipment and movement pattern. Equipment is the load-bearing filter: the
+question in the gym is rarely "what hits back" and almost always "what hits back
+with what is in this room". The selection persists in localStorage, because your
+gym changes far less often than your session does.
+
+The workout screen uses it for a Browse picker, a typical-rep-range hint that
+flags entries outside it, and a push/pull balance warning.
 
 ---
 
@@ -72,11 +121,10 @@ compliance data `evaluateWeekly` would take the adherence branch on every stall 
 giving a confidently wrong instruction. Weight plus two taps is still well inside
 the 30-second budget.
 
-**Gain-phase band uses kg, not %BW.** §4.4 describes the gain target as
-+0.15–0.25 %BW/week while §7 config gives `[0.12, 0.25]` kg. Config wins, since it
-is declared the single source of truth — and at ~82 kg the two are near-identical
-(0.15–0.25 %BW = 0.123–0.205 kg). The rate is *also* expressed as %BW in the
-verdict rationale whenever bodyweight is known.
+**All rate bands are now %BW** (Phase 6), resolving the original conflict between
+§4.4 (which described the gain target as +0.15–0.25 %BW/week) and §7 config
+(which gave `[0.12, 0.25]` kg). The spec's percentages won, and the kg constants
+survive only as the pre-first-weigh-in fallback.
 
 **Adaptive TDEE window is inclusive of both endpoints.** A change "over 14 days"
 needs two samples 14 days apart, so a 14-day window spans 15 calendar days. The
@@ -142,6 +190,17 @@ compares the best set of each of the last three weeks; both recent weeks must si
 below the reference week. One bad session is noise; a two-week slide during a
 deficit is the signal.
 
+**The midpoint of a rate band comes from the unrounded percentages.**
+`Math.round` breaks symmetry across zero (−20.5 → −20 but 20.5 → 21), so
+computing the midpoint from the rounded kg band gave a symmetric maintain band a
+phantom +5 kcal surplus. A test caught it.
+
+**The dial reads its latest value from a ref, not the render closure.** Rapid
+input — a held arrow key, fast ± taps, a quick spin — fires several times before
+React re-renders, and a closure over `value` makes every one of them compute from
+the same stale number. Ten rapid presses collapsed into one. Verified fixed by
+driving it in a headless browser.
+
 **Chart colours are identity, not status.** The trend line is blue (`#3987e5`),
 not the app's green accent — a green line would imply "good" regardless of what
 the data says. Raw daily points are deliberately recessive gray behind it.
@@ -192,9 +251,11 @@ The advisor is clean after the fix.
 
 - **Bundle is 938 KB (≈260 KB gzipped)**, mostly Recharts. Fine for a personal
   app on a home-screen icon; code-split the charts if it ever matters.
-- **Settings does not edit profile anthropometrics or the config thresholds** —
-  it sets the phase, exports JSON, and signs out. Height falls back to
-  `config.PROFILE.HEIGHT_CM`, so a fork with a different height must edit config.
+- **Settings edits height but not date of birth or sex.** Age still comes from
+  `config.PROFILE.DOB`, which feeds the Mifflin fallback only — once adaptive
+  TDEE kicks in it stops mattering.
+- **The config thresholds are not editable in the UI.** They are all in
+  `config.ts` as a single source of truth, but changing them needs a code edit.
 - **CSV export is not implemented**; JSON is.
 - **Workout and Measure are online-only** (see the decision above).
 - **Overreaching only runs during `cut` / `mini_cut`.** That matches the

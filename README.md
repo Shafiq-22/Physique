@@ -85,7 +85,8 @@ To stand up a fresh one instead:
    supabase db push
    ```
 
-   or paste `supabase/migrations/20260804000000_init.sql` into the SQL editor and run it.
+   or paste the files in `supabase/migrations/` into the SQL editor, in filename
+   order, and run them.
 
    This creates all nine tables, their indexes, RLS policies on every one of them,
    the private `progress-photos` bucket with owner-only path policies, and a
@@ -118,6 +119,8 @@ src/
     analytics.ts       PURE: EMA, adaptive TDEE, readiness, aesthetics, compliance
     decisionEngine.ts  PURE: weekly / phase / deload / overreaching rules
     workouts.ts        PURE: PR detection, strength trend
+    targets.ts         PURE: weight-derived calories, protein, rate bands
+    exerciseLibrary.ts exercises by body part, equipment and movement pattern
     offlineQueue.ts    IndexedDB write queue + flush on reconnect
     supabase.ts  types.ts  dates.ts
   hooks/               React Query wrappers over the tables
@@ -143,7 +146,7 @@ on the network and nothing is lost when you log with one bar of signal.
 A browser PWA **cannot** read Apple Health / HealthKit or watch data. That is an
 OS restriction, not an engineering problem, and this app does not pretend
 otherwise. RHR, HRV, sleep and steps are entered by hand — they are already on
-screen in your watch app each morning, and the steppers make it about 15 seconds.
+screen in your watch app each morning, and the dials make it about 15 seconds.
 
 See `PROGRESS.md` for the two future paths (Capacitor wrapper, or Apple Health XML
 import) and the `lib/importers/` seam left for them.
@@ -156,8 +159,10 @@ import) and the `lib/importers/` seam left for them.
 npm test
 ```
 
-58 tests cover the pure layer, including all seven worked cases from the spec:
+77 tests cover the pure layer, including all seven worked cases from the spec:
 EMA smoothing across a gap, adaptive TDEE (≈2,575 kcal, and `null` below 10 intake
 days), the four weekly cut branches, both phase transitions, deload flag counting
 and the 42/56-day windows, the overreaching trigger, and the Adonis ratio — plus
-PR detection and the strength-decline trend that feeds the overreaching rule.
+PR detection, the strength-decline trend that feeds the overreaching rule, and
+the weight-derived targets (which scale calories, protein and rate bands off
+current bodyweight and measured expenditure rather than fixed constants).

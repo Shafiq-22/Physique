@@ -8,6 +8,7 @@ import {
   COMPLIANCE_GOOD_PCT,
   DELOAD,
   FATIGUE,
+  MAINTAIN_DRIFT_PCT_BW,
   PHASE_TARGETS,
   READINESS,
   TRANSITIONS,
@@ -43,9 +44,16 @@ export function evaluateWeekly(
   trend: WeeklyInput,
   phase: PhaseType,
   compliancePct: number,
+  /**
+   * Acceptable weekly change in kg. Callers pass the weight-derived band from
+   * `computePhaseTargets`; the config constants are only the fallback for when
+   * there is no bodyweight to scale from.
+   */
+  band?: [number, number],
 ): Verdict {
   const delta = trend.emaNow - trend.emaPrevWeek;
-  const [lo, hi] = PHASE_TARGETS[phase].weekly_change_kg as unknown as [number, number];
+  const [lo, hi] =
+    band ?? (PHASE_TARGETS[phase].weekly_change_kg as unknown as [number, number]);
 
   const pctBW = isNum(trend.bodyweightKg) && trend.bodyweightKg > 0
     ? roundTo((delta / trend.bodyweightKg) * 100, 2)
@@ -69,22 +77,37 @@ export function evaluateWeekly(
 
   const inBand = delta >= lo && delta <= hi;
 
-  if (phase === 'maintain') {
-    if (Math.abs(delta) > 0.4) {
+  // Maintain and recomp both aim at a stable scale weight; what differs is what
+  // else is expected to change. Recomp progress shows up in the tape, not here.
+  if (phase === 'maintain' || phase === 'recomp') {
+    const driftLimit = isNum(trend.bodyweightKg) && trend.bodyweightKg > 0
+      ? roundTo((MAINTAIN_DRIFT_PCT_BW / 100) * trend.bodyweightKg, 2)
+      : 0.4;
+
+    if (Math.abs(delta) > driftLimit) {
       return {
         code: 'maintain_drift',
-        verdict: `Drifting ${delta > 0 ? 'up' : 'down'} in maintenance. Check intake against your target.`,
+        verdict: `Drifting ${delta > 0 ? 'up' : 'down'}${phase === 'recomp' ? ' during recomp' : ' in maintenance'}. Check intake against your target.`,
         severity: 'warn',
-        rationale: [...base, 'Maintenance drift beyond ±0.40 kg/week means intake has moved.'],
-        snapshot,
+        rationale: [
+          ...base,
+          `Drift beyond ±${driftLimit} kg/week means intake has moved.`,
+          ...(phase === 'recomp'
+            ? ['A recomp is judged by the tape and the mirror — but the scale should still hold.']
+            : []),
+        ],
+        snapshot: { ...snapshot, driftLimitKg: driftLimit },
       };
     }
     return {
       code: 'on_track',
-      verdict: 'Holding steady. Change nothing.',
+      verdict:
+        phase === 'recomp'
+          ? 'Weight steady — exactly right for a recomp. Judge this one by the tape.'
+          : 'Holding steady. Change nothing.',
       severity: 'info',
       rationale: base,
-      snapshot,
+      snapshot: { ...snapshot, driftLimitKg: driftLimit },
     };
   }
 

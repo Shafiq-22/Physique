@@ -18,7 +18,8 @@ import {
   evaluateWeekly,
 } from '../lib/decisionEngine';
 import { computeStrengthTrend } from '../lib/workouts';
-import { PHASE_TARGETS, PROFILE } from '../lib/config';
+import { computePhaseTargets, type PhaseTargets } from '../lib/targets';
+import { PROFILE } from '../lib/config';
 import { todayISO } from '../lib/dates';
 import type {
   DailyLog,
@@ -56,6 +57,8 @@ export interface EngineOutput {
   /** High severity and pinned to Today when present. */
   overreaching: Verdict | null;
   strengthDetail: string;
+  /** Calories, protein and rate band derived from current weight + expenditure. */
+  targets: PhaseTargets | null;
 }
 
 const ageFrom = (dob: string, asOf: ISODate): number => {
@@ -100,13 +103,22 @@ export function useEngine(input: EngineInput): EngineOutput {
           })
         : null;
 
+    // --- Targets, derived from current weight and measured expenditure ---
+    const targets: PhaseTargets | null = phase
+      ? computePhaseTargets(
+          phase.phase_type,
+          latestWeight,
+          tdee?.tdee ?? mifflin,
+          tdee ? 'measured' : 'estimated',
+        )
+      : null;
+
     // --- Compliance over the same week the trend delta covers ---
     const weekEnd = trendDelta?.toDate ?? asOf;
     const weekStart = shiftISO(weekEnd, -6);
     const week = all.filter((l) => l.log_date >= weekStart && l.log_date <= weekEnd);
-    const targetKcal = phase
-      ? (phase.target_kcal ?? PHASE_TARGETS[phase.phase_type].kcal)
-      : null;
+    // An explicitly saved phase target wins; otherwise use the derived one.
+    const targetKcal = phase?.target_kcal ?? targets?.kcal ?? null;
     const compliance = computeCompliance(week, targetKcal);
 
     // --- Verdicts ---
@@ -120,6 +132,7 @@ export function useEngine(input: EngineInput): EngineOutput {
             },
             phase.phase_type,
             compliance.pct,
+            targets?.weeklyChangeKg,
           )
         : null;
 
@@ -166,6 +179,7 @@ export function useEngine(input: EngineInput): EngineOutput {
       deload,
       overreaching,
       strengthDetail: strength.detail,
+      targets,
     };
   }, [logs, phase, measurements, workouts, sets, recommendations]);
 }
