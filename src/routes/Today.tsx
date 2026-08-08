@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useDailyLogs, useLogForDate } from '../hooks/useDailyLog';
 import { useActivePhase } from '../hooks/usePhase';
-import { useTrend } from '../hooks/useTrend';
-import { useWeeklyRecommendation } from '../hooks/useRecommendation';
+import { useMeasurements } from '../hooks/useMeasurements';
+import { useWorkouts, useWorkoutSets } from '../hooks/useWorkouts';
+import { useRecommendations } from '../hooks/useRecommendations';
+import { useEngine } from '../hooks/useEngine';
 import { TrendCard } from '../components/TrendCard';
 import { VerdictCard } from '../components/VerdictCard';
+import { ReadinessRing } from '../components/ReadinessRing';
+import { TdeeCard } from '../components/TdeeCard';
 import { shortLabel, todayISO } from '../lib/dates';
 import { PHASE_TARGETS } from '../lib/config';
 
@@ -19,14 +23,22 @@ export default function Today() {
   const today = todayISO();
   const { data: logs, isLoading, error } = useDailyLogs();
   const { data: phase } = useActivePhase();
+  const { data: measurements } = useMeasurements();
+  const { data: workouts } = useWorkouts();
+  const { data: sets } = useWorkoutSets();
+  const { data: recommendations } = useRecommendations();
   const { data: todayLog } = useLogForDate(today);
-  const { series, delta } = useTrend(logs);
-  const weekly = useWeeklyRecommendation(logs, delta, phase);
 
+  const engine = useEngine({ logs, phase, measurements, workouts, sets, recommendations });
   const loggedToday = todayLog?.weight_kg !== null && todayLog?.weight_kg !== undefined;
 
   return (
     <div className="space-y-4 pt-1">
+      {/* The safety net outranks everything else on the screen. */}
+      {engine.overreaching ? (
+        <VerdictCard verdict={engine.overreaching} eyebrow="Stop and read this" defaultOpen />
+      ) : null}
+
       {!loggedToday ? (
         <Link to="/log" className="btn-primary block w-full text-center">
           Log today (30s)
@@ -66,21 +78,47 @@ export default function Today() {
           <p className="muted">Loading your trend…</p>
         </div>
       ) : (
-        <TrendCard series={series} delta={delta} />
+        <TrendCard series={engine.series} delta={engine.trendDelta} />
       )}
 
-      {weekly ? (
-        <VerdictCard verdict={weekly.verdict} eyebrow="This week" />
-      ) : phase && series.length > 0 ? (
+      {engine.readiness ? <ReadinessRing readiness={engine.readiness} /> : null}
+
+      {engine.weekly ? (
+        <VerdictCard verdict={engine.weekly} eyebrow="This week" />
+      ) : phase && engine.series.length > 0 ? (
         <section className="card">
           <p className="text-sm muted">
-            Seven days of weight builds the first verdict. {7 - Math.min(series.length, 7)} to go.
+            Seven days of weight builds the first verdict. {7 - Math.min(engine.series.length, 7)} to
+            go.
           </p>
         </section>
       ) : null}
 
+      {engine.transition ? (
+        <VerdictCard verdict={engine.transition} eyebrow="Phase" />
+      ) : null}
+
+      {engine.deload && engine.deload.code !== 'no_deload' ? (
+        <VerdictCard verdict={engine.deload} eyebrow="Recovery" />
+      ) : null}
+
+      <TdeeCard
+        adaptive={engine.tdee}
+        fallback={engine.mifflin}
+        intakeDays={engine.intakeDays}
+      />
+
+      <div className="flex gap-2">
+        <Link to="/workout" className="btn-ghost flex-1 text-center">
+          Log workout
+        </Link>
+        <Link to="/measure" className="btn-ghost flex-1 text-center">
+          Measure
+        </Link>
+      </div>
+
       {loggedToday ? (
-        <p className="pt-2 text-center text-sm muted">
+        <p className="pb-2 pt-1 text-center text-sm muted">
           Logged for today. That is everything — close the app.
         </p>
       ) : null}

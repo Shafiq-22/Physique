@@ -8,6 +8,8 @@ import { SyncBadge } from './components/SyncBadge';
 import Auth from './routes/Auth';
 import Today from './routes/Today';
 import Log from './routes/Log';
+import Workout from './routes/Workout';
+import Measure from './routes/Measure';
 import Progress from './routes/Progress';
 import Review from './routes/Review';
 import Settings from './routes/Settings';
@@ -44,6 +46,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Today />} />
           <Route path="/log" element={<Log />} />
+          <Route path="/workout" element={<Workout />} />
+          <Route path="/measure" element={<Measure />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings />} />
@@ -58,9 +62,15 @@ export default function App() {
 function Header() {
   const { pathname } = useLocation();
   const title =
-    { '/': 'Today', '/log': 'Log', '/progress': 'Progress', '/review': 'Review', '/settings': 'Settings' }[
-      pathname
-    ] ?? 'Vector';
+    {
+      '/': 'Today',
+      '/log': 'Log',
+      '/workout': 'Workout',
+      '/measure': 'Measure',
+      '/progress': 'Progress',
+      '/review': 'Review',
+      '/settings': 'Settings',
+    }[pathname] ?? 'Vector';
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-ink-900/90 px-4 py-3 backdrop-blur">

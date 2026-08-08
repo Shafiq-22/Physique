@@ -117,6 +117,7 @@ src/
     config.ts          every threshold — the single source of truth
     analytics.ts       PURE: EMA, adaptive TDEE, readiness, aesthetics, compliance
     decisionEngine.ts  PURE: weekly / phase / deload / overreaching rules
+    workouts.ts        PURE: PR detection, strength trend
     offlineQueue.ts    IndexedDB write queue + flush on reconnect
     supabase.ts  types.ts  dates.ts
   hooks/               React Query wrappers over the tables
@@ -155,7 +156,8 @@ import) and the `lib/importers/` seam left for them.
 npm test
 ```
 
-45 tests cover the pure layer, including all seven worked cases from the spec:
+58 tests cover the pure layer, including all seven worked cases from the spec:
 EMA smoothing across a gap, adaptive TDEE (≈2,575 kcal, and `null` below 10 intake
 days), the four weekly cut branches, both phase transitions, deload flag counting
-and the 42/56-day windows, the overreaching trigger, and the Adonis ratio.
+and the 42/56-day windows, the overreaching trigger, and the Adonis ratio — plus
+PR detection and the strength-decline trend that feeds the overreaching rule.

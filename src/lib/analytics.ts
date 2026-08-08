@@ -458,4 +458,46 @@ export function computeCompliance(logs: DailyLog[], targetKcal: number | null): 
   };
 }
 
+// ---------------------------------------------------------------------------
+// Weekly aggregates for the Sunday review
+// ---------------------------------------------------------------------------
+
+export interface WeekSummary {
+  from: ISODate;
+  to: ISODate;
+  daysLogged: number;
+  avgSleep: number | null;
+  avgRhr: number | null;
+  avgHrv: number | null;
+  avgEnergy: number | null;
+  avgMood: number | null;
+  avgSteps: number | null;
+  avgIntake: number | null;
+}
+
+const avgOf = (logs: DailyLog[], pick: (l: DailyLog) => number | null): number | null => {
+  const vals = logs.map(pick).filter(isNum);
+  return vals.length ? round(mean(vals), 1) : null;
+};
+
+/** Plain averages over a date range — the "how was the week" half of the review. */
+export function summariseWeek(logs: DailyLog[], from: ISODate, to: ISODate): WeekSummary {
+  const win = logs.filter(
+    (l) => isoCompare(l.log_date, from) >= 0 && isoCompare(l.log_date, to) <= 0,
+  );
+
+  return {
+    from,
+    to,
+    daysLogged: win.length,
+    avgSleep: avgOf(win, (l) => l.sleep_hours),
+    avgRhr: avgOf(win, (l) => l.resting_hr),
+    avgHrv: avgOf(win, (l) => l.hrv_ms),
+    avgEnergy: avgOf(win, (l) => l.energy_1_10),
+    avgMood: avgOf(win, (l) => l.mood_1_10),
+    avgSteps: avgOf(win, (l) => l.steps),
+    avgIntake: avgOf(win, (l) => l.kcal_intake),
+  };
+}
+
 export { round as roundTo, shiftISO };
