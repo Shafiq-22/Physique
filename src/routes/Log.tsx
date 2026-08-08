@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { RotaryDial } from '../components/RotaryDial';
 import { ScalePicker } from '../components/ScalePicker';
 import { Toggle } from '../components/Toggle';
+import { MealLogger } from '../components/MealLogger';
+import { DAILY_TARGETS, totalsFor } from '../lib/diet';
+import type { MealSelection } from '../lib/diet';
 import { useDailyLogs, useSaveDailyLog } from '../hooks/useDailyLog';
 import { useActivePhase } from '../hooks/usePhase';
 import { PHASE_TARGETS } from '../lib/config';
@@ -45,6 +48,8 @@ export default function Log() {
   const [protein, setProtein] = useState<number | null>(null);
   const [coldHands, setColdHands] = useState<boolean | null>(null);
   const [foodThoughts, setFoodThoughts] = useState<boolean | null>(null);
+  const [meals, setMeals] = useState<MealSelection>({});
+  const [water, setWater] = useState<number | null>(null);
   const [showExact, setShowExact] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -63,6 +68,8 @@ export default function Log() {
     setKcal((v) => (v === null ? existing.kcal_intake : v));
     setProtein((v) => (v === null ? existing.protein_g : v));
     setColdHands((v) => (v === null ? existing.cold_hands_feet : v));
+    setMeals((m) => (Object.keys(m).length === 0 && existing.meals ? existing.meals : m));
+    setWater((v) => (v === null ? existing.water_l : v));
     setFoodThoughts((v) => (v === null ? existing.intrusive_food_thoughts : v));
     if (existing.kcal_intake !== null) setShowExact(true);
   }, [existing]);
@@ -71,6 +78,12 @@ export default function Log() {
   const targetProtein = phase
     ? (phase.protein_g ?? PHASE_TARGETS[phase.phase_type].protein_g)
     : null;
+
+  // Ticking the plan IS the calorie log: derive intake from it, unless an exact
+  // figure was typed by hand (a restaurant meal, a day off-plan).
+  const mealTotals = totalsFor(meals);
+  const derivedKcal = mealTotals.mealsEaten > 0 ? mealTotals.kcal : null;
+  const derivedProtein = mealTotals.mealsEaten > 0 ? mealTotals.protein : null;
 
   const submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -85,8 +98,10 @@ export default function Log() {
       steps,
       calories_on_target: caloriesOnTarget,
       protein_hit: proteinHit,
-      kcal_intake: kcal,
-      protein_g: protein,
+      kcal_intake: kcal ?? derivedKcal,
+      protein_g: protein ?? derivedProtein,
+      meals: mealTotals.mealsEaten > 0 ? meals : null,
+      water_l: water,
       cold_hands_feet: coldHands ?? false,
       intrusive_food_thoughts: foodThoughts ?? false,
     });
@@ -161,19 +176,51 @@ export default function Log() {
         placeholder={previous?.steps ?? null}
       />
 
-      <Toggle
-        label="Calories on target"
-        hint={targetKcal ? `${targetKcal} kcal` : undefined}
-        value={caloriesOnTarget}
-        onChange={setCaloriesOnTarget}
-      />
+      <div className="space-y-1">
+        <h2 className="px-1 text-sm font-medium muted">Meals</h2>
+        <MealLogger value={meals} onChange={setMeals} />
+      </div>
 
-      <Toggle
-        label="Protein hit"
-        hint={targetProtein ? `${targetProtein} g` : undefined}
-        value={proteinHit}
-        onChange={setProteinHit}
+      <RotaryDial
+        label="Water"
+        unit="litres"
+        value={water}
+        onChange={setWater}
+        step={0.25}
+        decimals={2}
+        min={0}
+        max={8}
+        degreesPerStep={12}
+        placeholder={previous?.water_l ?? DAILY_TARGETS.waterL[0]}
       />
+      <p className="-mt-2 px-1 text-xs muted">
+        Target {DAILY_TARGETS.waterL[0]}–{DAILY_TARGETS.waterL[1]} L. Pale straw by mid-morning
+        means you are on track. Salt your food too — Gulf sweating drains sodium.
+      </p>
+
+      <details className="card">
+        <summary className="cursor-pointer text-sm font-medium text-slate-300">
+          Ate off-plan today?
+        </summary>
+        <p className="mt-1 text-xs muted">
+          Only needed when the meals above do not describe the day. A typed figure overrides the
+          derived one.
+        </p>
+        <div className="mt-3 space-y-3">
+          <Toggle
+            label="Calories on target"
+            hint={targetKcal ? `${targetKcal} kcal` : undefined}
+            value={caloriesOnTarget}
+            onChange={setCaloriesOnTarget}
+          />
+          <Toggle
+            label="Protein hit"
+            hint={targetProtein ? `${targetProtein} g` : undefined}
+            value={proteinHit}
+            onChange={setProteinHit}
+          />
+        </div>
+      </details>
 
       {showExact ? (
         <>
