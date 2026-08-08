@@ -92,10 +92,32 @@ To stand up a fresh one instead:
    the private `progress-photos` bucket with owner-only path policies, and a
    trigger that gives each new auth user a `profiles` row.
 3. **Auth → URL Configuration**: set Site URL to your deployed origin and add
-   `http://localhost:5173` to Redirect URLs so magic links work in dev.
-4. Sign in with your email — the link creates the user and the profile row.
+   `http://localhost:5173` to Redirect URLs so the emailed link works in dev.
+4. **Auth → Emails → Magic Link**: add `{{ .Token }}` to the template (see below).
+5. Sign in with your email — the first sign-in creates the user and profile row.
 
-Sign-in is a passwordless magic link, so no password is ever stored or typed.
+### Sign-in and the installed PWA
+
+Sign-in is by **6-digit emailed code**, with a password as an alternative.
+
+The emailed *link* cannot sign you into an installed iOS PWA. Tapping it opens
+Safari, which is a separate browsing context with its own storage, so the session
+lands somewhere the app can never read it. PKCE makes it worse: the code verifier
+is written by whichever context started the sign-in. A typed code has neither
+problem, because the exchange happens inside the app.
+
+For the code to appear in the email, the **Magic Link** template must include the
+token. In **Supabase → Authentication → Emails → Magic Link**, add a line:
+
+```html
+<p>Or enter this code in the app: <strong>{{ .Token }}</strong></p>
+```
+
+Supabase's default template only has `{{ .ConfirmationURL }}`, so without this
+edit no code is sent.
+
+A password needs no configuration at all — set one from **Settings → Password**
+once signed in, then use "Use a password instead" on the sign-in screen.
 
 ---
 

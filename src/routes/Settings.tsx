@@ -13,6 +13,63 @@ import { PHASE_RULES, PROFILE } from '../lib/config';
 import { shortLabel } from '../lib/dates';
 import type { PhaseType } from '../lib/types';
 
+/**
+ * Set or change the account password.
+ *
+ * The emailed magic link cannot sign you into an installed iOS PWA — tapping it
+ * opens Safari, a separate browsing context with its own storage. A password
+ * works identically everywhere and needs no email round-trip at all.
+ */
+function SetPassword() {
+  const [password, setPassword] = useState('');
+  const [state, setState] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const save = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (password.length < 8) {
+      setState('error');
+      setMessage('Use at least 8 characters.');
+      return;
+    }
+    setState('saving');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setState('error');
+      setMessage(error.message);
+    } else {
+      setState('done');
+      setPassword('');
+    }
+  };
+
+  return (
+    <form onSubmit={save} className="card">
+      <h2 className="font-medium">Password</h2>
+      <p className="mt-1 text-xs muted">
+        Set one to sign in on the installed app. The emailed link only works in a browser — on iOS
+        it opens Safari, which cannot pass a session to the home-screen app.
+      </p>
+      <input
+        type="password"
+        autoComplete="new-password"
+        value={password}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          setState('idle');
+        }}
+        placeholder="New password"
+        aria-label="New password"
+        className="mt-3 w-full rounded-xl bg-ink-900 px-3 py-2.5 outline-none ring-1 ring-ink-700 focus:ring-2 focus:ring-accent/60"
+      />
+      <button type="submit" disabled={state === 'saving'} className="btn-ghost mt-2 w-full">
+        {state === 'saving' ? 'Saving…' : state === 'done' ? 'Password set ✓' : 'Set password'}
+      </button>
+      {state === 'error' ? <p className="mt-2 text-sm text-danger">{message}</p> : null}
+    </form>
+  );
+}
+
 export default function Settings() {
   const { data: phase } = useActivePhase();
   const { data: logs } = useDailyLogs();
@@ -201,6 +258,8 @@ export default function Settings() {
           to chase daily.
         </p>
       </section>
+
+      <SetPassword />
 
       <section className="card">
         <h2 className="font-medium">Your data</h2>
