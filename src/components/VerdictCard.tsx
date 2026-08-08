@@ -57,10 +57,11 @@ export function VerdictCard({ verdict, eyebrow, defaultOpen = false }: Props) {
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
             {Object.entries(verdict.snapshot).map(([k, v]) => (
               <div key={k} className="min-w-0">
-                <dt className="truncate text-[11px] uppercase tracking-wide text-slate-500">
+                <dt className="text-[11px] uppercase tracking-wide text-slate-500">
                   {humanise(k)}
                 </dt>
-                <dd className="truncate text-sm tabular-nums text-slate-200">{format(v)}</dd>
+                {/* Never truncated: the numbers are the reason this card exists. */}
+                <dd className="break-words text-sm tabular-nums text-slate-200">{format(v)}</dd>
               </div>
             ))}
           </dl>
@@ -79,7 +80,13 @@ const humanise = (key: string): string =>
 
 const format = (v: unknown): string => {
   if (v === null || v === undefined) return '—';
-  if (Array.isArray(v)) return v.join(' to ');
+  if (Array.isArray(v)) {
+    // A two-number array is a target band ("-0.55 to -0.4"); anything else is a
+    // plain list and must not be joined as if it were a range.
+    return v.length === 2 && v.every((x) => typeof x === 'number')
+      ? v.join(' to ')
+      : v.map(String).join(', ');
+  }
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
 };

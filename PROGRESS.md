@@ -8,12 +8,15 @@ Running log of what is built, what was decided, and what is deliberately left.
 
 | Phase | State |
 |---|---|
-| 0 — Scaffold, auth, migrations, PWA | ✅ Built, deploy-ready |
+| 0 — Scaffold, auth, migrations, PWA | ✅ Built and deployed |
 | 1 — MVP: weight trend + verdict | ✅ Built |
-| 2 — Full daily log, readiness, adaptive TDEE | ⏳ Logic done + tested, UI not built |
-| 3 — Workouts + PR detection | ⏳ Not started |
-| 4 — Measurements, photos, aesthetics | ⏳ Ratios done + tested, UI not built |
-| 5 — Full engine + Weekly Review | ⏳ Engine done + tested, UI not built |
+| 2 — Full daily log, readiness, adaptive TDEE | ✅ Built |
+| 3 — Workouts + PR detection | ✅ Built |
+| 4 — Measurements, photos, aesthetics | ✅ Built |
+| 5 — Full engine + Weekly Review | ✅ Built |
+
+Live at `physique-green.vercel.app`, backed by Supabase project `Vector`
+(`esfxrnqwkulqhxwgyezb`).
 
 **Verified here:** `npm run build` passes (typecheck + bundle + service worker),
 `npm test` passes 45/45, and the Today/Log components were rendered in a headless
@@ -37,16 +40,21 @@ end-to-end auth or write round-trip has been exercised from here.
 
 ---
 
-## Why the pure layer is complete ahead of its UI
+## Screen map
 
-Phases 2–5 are not built, but `analytics.ts` and `decisionEngine.ts` contain the
-whole engine — readiness, adaptive TDEE, deload, overreaching, phase transitions,
-Adonis ratio — because the spec asks for all seven worked test cases as Vitest
-tests, and a test needs the function it tests. The functions are pure and unused
-by the current screens, so they cost nothing at runtime and each later phase is
-now a UI job against an already-proven rule.
+Four tabs, per the spec. Workout and Measure are entered from Today and Progress
+rather than taking tab slots — they are weekly-or-less actions, and a tab bar
+that needs a second row stops being a tab bar.
 
-Only `evaluateWeekly` is surfaced in the UI today.
+| Route | What it does |
+|---|---|
+| `/` Today | Trend, readiness, verdicts, learned TDEE, entry points |
+| `/log` Log | The 30-second daily entry |
+| `/workout` | Session logging with live PR badges |
+| `/measure` | Tape, body fat, photos, benchmarks |
+| `/progress` | Long trend, proportions, sparklines, photo compare, PRs |
+| `/review` | Week aggregates, all verdicts, acknowledge-and-file |
+| `/settings` | Phase, export, sign out |
 
 ---
 
@@ -107,6 +115,33 @@ devtools on the deployed site regardless), and RLS is the actual security
 boundary, so the configurability was not worth the silent-failure mode. Env vars
 still take precedence when set.
 
+**PR detection uses three criteria, and matches reps on the *exact* load.**
+Total work (load × reps) beating the previous best, more reps at exactly this
+load, or a heavier load than ever lifted. Volume alone misses real progress —
+5 reps at 100 kg is a PR even though its volume trails 12 reps at 60 kg. The
+exact-load match matters: comparing against "this load or heavier" flags 12 reps
+at 40 kg as a record when 10 reps at 60 kg is already on file, which is strictly
+easier work. A test caught this. A first-ever set is never a PR.
+
+**Within a session, a later set must beat the earlier ones too.** Sets fold into
+the running history as they are evaluated, so three sets over an old record
+produce one or two badges rather than three.
+
+**Workouts are not queued offline.** The daily log is a single-row upsert, which
+the IndexedDB queue replays safely. A workout is many rows across two tables with
+a foreign key between them, and replaying that correctly needs more than the
+queue provides. The screen says so rather than silently losing a session.
+
+**Recommendations are written only on acknowledgement.** The table is a record of
+decisions taken, not a log of everything the engine ever computed. Filing a
+deload is also what restarts the 42/56-day clock — that is the source for
+`daysSinceLastDeload`, which was an open gap after Phase 1.
+
+**`performanceDeclining` is now derived, not passed in.** `computeStrengthTrend`
+compares the best set of each of the last three weeks; both recent weeks must sit
+below the reference week. One bad session is noise; a two-week slide during a
+deficit is the signal.
+
 **Chart colours are identity, not status.** The trend line is blue (`#3987e5`),
 not the app's green accent — a green line would imply "good" regardless of what
 the data says. Raw daily points are deliberately recessive gray behind it.
@@ -131,7 +166,8 @@ the data says. Raw daily points are deliberately recessive gray behind it.
 ## Wearables — the honest position
 
 A browser PWA cannot read HealthKit or Google Fit. No integration was attempted,
-per the spec. RHR / HRV / sleep / steps are manual entry (Phase 2 UI).
+per the spec. RHR / HRV / sleep / steps are manual entry on the Log screen, with
+yesterday's values as placeholders and steppers sized for one thumb.
 
 Future options, **not built**:
 1. Wrap with **Capacitor** for native HealthKit / Health Connect access.
@@ -154,13 +190,21 @@ The advisor is clean after the fix.
 
 ## Known gaps
 
-- **`daysSinceLastDeload` has no source yet.** `evaluateDeload` accepts it as an
-  input and is tested, but nothing records when a deload happened. Phase 3 or 5
-  needs either a `deload` recommendation row or a marker in Settings.
-- **`performanceDeclining` is an input, not a derivation.** `evaluateOverreaching`
-  takes it as a boolean; Phase 3 should derive it from workout history.
-- **Bundle is 886 KB (250 KB gzipped)**, mostly Recharts. Fine for a personal app;
-  code-split the chart if it ever matters.
-- **Settings does not yet edit profile anthropometrics or thresholds** — it sets
-  the phase and exports JSON. Height falls back to `config.PROFILE.HEIGHT_CM`.
-- CSV export is not implemented; JSON is.
+- **Bundle is 938 KB (≈260 KB gzipped)**, mostly Recharts. Fine for a personal
+  app on a home-screen icon; code-split the charts if it ever matters.
+- **Settings does not edit profile anthropometrics or the config thresholds** —
+  it sets the phase, exports JSON, and signs out. Height falls back to
+  `config.PROFILE.HEIGHT_CM`, so a fork with a different height must edit config.
+- **CSV export is not implemented**; JSON is.
+- **Workout and Measure are online-only** (see the decision above).
+- **Overreaching only runs during `cut` / `mini_cut`.** That matches the
+  blueprint, where it is a deficit safety net, but it means a hard gaining block
+  gets no equivalent brake.
+- **Photos are not compressed before upload.** A modern phone camera file is
+  several MB and goes up as-is; a few hundred photos would start to matter on the
+  free storage tier.
+- **Nothing verifies the deployed app against the real backend.** This
+  environment's network policy blocks `*.supabase.co` and `*.vercel.app`, so
+  every UI check was done against mock data in a local headless browser. Sign-in,
+  RLS behaviour under a real session, photo upload and signed URLs are unexercised
+  by me.
