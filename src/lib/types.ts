@@ -14,6 +14,8 @@ export interface Profile {
   dob: ISODate | null;
   sex: string | null;
   height_cm: number | null;
+  /** When the training programme began; drives the conditioning block. */
+  program_start: ISODate | null;
   created_at?: string;
 }
 

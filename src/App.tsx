@@ -10,6 +10,7 @@ import Today from './routes/Today';
 import Log from './routes/Log';
 import Workout from './routes/Workout';
 import Measure from './routes/Measure';
+import Program from './routes/Program';
 import Progress from './routes/Progress';
 import Review from './routes/Review';
 import Settings from './routes/Settings';
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/log" element={<Log />} />
           <Route path="/workout" element={<Workout />} />
           <Route path="/measure" element={<Measure />} />
+          <Route path="/program" element={<Program />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings />} />
@@ -67,6 +69,7 @@ function Header() {
       '/log': 'Log',
       '/workout': 'Workout',
       '/measure': 'Measure',
+      '/program': 'Programme',
       '/progress': 'Progress',
       '/review': 'Review',
       '/settings': 'Settings',

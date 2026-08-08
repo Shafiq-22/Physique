@@ -10,6 +10,10 @@ import { VerdictCard } from '../components/VerdictCard';
 import { ReadinessRing } from '../components/ReadinessRing';
 import { TdeeCard } from '../components/TdeeCard';
 import { TargetsCard } from '../components/TargetsCard';
+import { SessionCard } from '../components/SessionCard';
+import { useProfile } from '../hooks/useProfile';
+import { programWeeksElapsed } from '../hooks/useProgram';
+import { intervalForWeek, isHighRiskWindow, sessionForDate } from '../lib/program';
 import { shortLabel, todayISO } from '../lib/dates';
 import { PHASE_TARGETS } from '../lib/config';
 
@@ -30,9 +34,15 @@ export default function Today() {
   const { data: sets } = useWorkoutSets();
   const { data: recommendations } = useRecommendations();
   const { data: todayLog } = useLogForDate(today);
+  const { data: profile } = useProfile();
 
   const engine = useEngine({ logs, phase, measurements, workouts, sets, recommendations });
   const loggedToday = todayLog?.weight_kg !== null && todayLog?.weight_kg !== undefined;
+
+  // Today's programmed session, and whether it has already been logged.
+  const session = sessionForDate(today);
+  const weeks = programWeeksElapsed(profile, logs);
+  const trainedToday = (workouts ?? []).some((w) => w.performed_at.slice(0, 10) === today);
 
   return (
     <div className="space-y-4 pt-1">
@@ -46,6 +56,14 @@ export default function Today() {
           Log today (30s)
         </Link>
       ) : null}
+
+      <SessionCard
+        session={session}
+        done={trainedToday}
+        interval={session.cardioZone === 'intervals' ? intervalForWeek(weeks) : null}
+        weeksElapsed={weeks}
+        highRisk={isHighRiskWindow(weeks)}
+      />
 
       {phase ? (
         <div className="flex items-center gap-2">
@@ -113,8 +131,8 @@ export default function Today() {
       />
 
       <div className="flex gap-2">
-        <Link to="/workout" className="btn-ghost flex-1 text-center">
-          Log workout
+        <Link to="/program" className="btn-ghost flex-1 text-center">
+          Programme
         </Link>
         <Link to="/measure" className="btn-ghost flex-1 text-center">
           Measure

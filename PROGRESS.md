@@ -15,12 +15,13 @@ Running log of what is built, what was decided, and what is deliberately left.
 | 4 — Measurements, photos, aesthetics | ✅ Built |
 | 5 — Full engine + Weekly Review | ✅ Built |
 | 6 — Weight-derived targets, rotary dials, exercise library | ✅ Built |
+| 7 — The training programme, driving the app | ✅ Built |
 
 Live at `physique-green.vercel.app`, backed by Supabase project `Vector`
 (`esfxrnqwkulqhxwgyezb`).
 
 **Verified here:** `npm run build` passes (typecheck + bundle + service worker),
-`npm test` passes 77/77, and every screen's components were rendered and driven
+`npm test` passes 102/102, and every screen's components were rendered and driven
 in a headless browser against mock data — including scripted drags, keypresses
 and rapid input on the dial.
 
@@ -89,9 +90,45 @@ flags entries outside it, and a push/pull balance warning.
 
 ---
 
+## The training programme (Phase 7)
+
+The Hybrid Athletic plan (Upper/Lower + Power, home-first) is in the app as
+**data that drives behaviour**, not a table to read.
+
+- **`lib/program.ts`** — the plan: seven days, five lifting sessions, every
+  exercise with sets, rep range, RPE, rest and its progression ladder; warm-ups,
+  daily mobility, cardio, and the interval blocks by month.
+- **`lib/progression.ts`** — the second governing rule, computed. Double
+  progression keys on the **worst set** of the last session, because that is the
+  gate for "all sets at the top of the range" — and the set people remember is
+  the good one. Four outcomes: start at the bottom, add a rep, make the movement
+  harder (with the next ladder rung named), or repeat because the floor was
+  missed.
+- **Today** shows the session due today with its cardio, mobility and step
+  target, plus the interval protocol on Thursdays.
+- **Workout** loads the session pre-filled: one row per prescribed set, each
+  exercise headed by its computed instruction and a "why this target?" that
+  quotes the numbers. A rest timer counts the prescribed rest.
+- **`/program`** holds the reference: week shape, both rules, all seven ladders,
+  the mobility list, and the deload protocol.
+
+**The 3-week stall rule is a real fatigue flag.** "If nothing has improved for 3
+weeks straight, you need a deload, not more effort" now feeds `evaluateDeload`
+as a sixth flag alongside RHR, HRV, sleep, RPE creep and mood. It counts an
+exercise as improved when its best set in the window beats its best from before.
+Tempo and range live in the leverage note rather than the numbers, so it
+under-reports rather than over-reports — the safe direction for a rule whose
+output is "rest more".
+
+**Programme start** is a new nullable `profiles.program_start`. Without one the
+first logged day is used, so the conditioning block advances sensibly instead of
+sitting at week 1 forever.
+
+---
+
 ## Screen map
 
-Four tabs, per the spec. Workout and Measure are entered from Today and Progress
+Five tabs. Workout and Measure are entered from Today and Progress
 rather than taking tab slots — they are weekly-or-less actions, and a tab bar
 that needs a second row stops being a tab bar.
 
@@ -99,7 +136,8 @@ that needs a second row stops being a tab bar.
 |---|---|
 | `/` Today | Trend, readiness, verdicts, learned TDEE, entry points |
 | `/log` Log | The 30-second daily entry |
-| `/workout` | Session logging with live PR badges |
+| `/workout` | Today's session pre-filled, with per-exercise progression targets |
+| `/program` Train | Week shape, the two rules, ladders, mobility, deload protocol |
 | `/measure` | Tape, body fat, photos, benchmarks |
 | `/progress` | Long trend, proportions, sparklines, photo compare, PRs |
 | `/review` | Week aggregates, all verdicts, acknowledge-and-file |

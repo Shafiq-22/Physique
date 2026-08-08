@@ -18,6 +18,7 @@ import {
   evaluateWeekly,
 } from '../lib/decisionEngine';
 import { computeStrengthTrend } from '../lib/workouts';
+import { detectProgressStall } from '../lib/progression';
 import { computePhaseTargets, type PhaseTargets } from '../lib/targets';
 import { PROFILE } from '../lib/config';
 import { todayISO } from '../lib/dates';
@@ -57,6 +58,8 @@ export interface EngineOutput {
   /** High severity and pinned to Today when present. */
   overreaching: Verdict | null;
   strengthDetail: string;
+  /** Programme rule: nothing improved on load or reps for 3 weeks. */
+  progressStall: ReturnType<typeof detectProgressStall>;
   /** Calories, protein and rate band derived from current weight + expenditure. */
   targets: PhaseTargets | null;
 }
@@ -143,6 +146,9 @@ export function useEngine(input: EngineInput): EngineOutput {
     const setDates = new Map<string, ISODate>();
     for (const w of workouts ?? []) setDates.set(w.id, w.performed_at.slice(0, 10));
 
+    // The programme's own rule: nothing improving for 3 weeks is a fatigue flag.
+    const progressStall = detectProgressStall(sets ?? [], setDates, asOf);
+
     const deload = all.length
       ? evaluateDeload({
           logs: all,
@@ -150,6 +156,7 @@ export function useEngine(input: EngineInput): EngineOutput {
           setDates,
           daysSinceLastDeload: daysSinceLastDeload(recommendations),
           asOf,
+          progressStall,
         })
       : null;
 
@@ -179,6 +186,7 @@ export function useEngine(input: EngineInput): EngineOutput {
       deload,
       overreaching,
       strengthDetail: strength.detail,
+      progressStall,
       targets,
     };
   }, [logs, phase, measurements, workouts, sets, recommendations]);

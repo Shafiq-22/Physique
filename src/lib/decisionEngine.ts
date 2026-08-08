@@ -325,6 +325,13 @@ export interface DeloadInput {
   setDates?: Map<string, ISODate>;
   daysSinceLastDeload?: number | null;
   asOf?: ISODate;
+  /**
+   * The programme's own rule: nothing improved on load or reps for 3 weeks.
+   * Supplied by `detectProgressStall`, and counted as a fatigue flag in its own
+   * right — "if nothing has improved for 3 weeks straight, you need a deload,
+   * not more effort."
+   */
+  progressStall?: { stalled: boolean; detail: string };
 }
 
 /**
@@ -413,6 +420,15 @@ export function evaluateDeload(input: DeloadInput): Verdict {
       key: 'low_mood',
       fired: n >= FATIGUE.LOW_MOOD_DAYS,
       detail: `Mood below ${FATIGUE.LOW_MOOD}/10 on ${n} day(s).`,
+    });
+  }
+
+  // 6. Programme rule: three weeks with nothing improving.
+  if (input.progressStall) {
+    flags.push({
+      key: 'no_progress',
+      fired: input.progressStall.stalled,
+      detail: input.progressStall.detail,
     });
   }
 
