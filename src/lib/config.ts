@@ -16,12 +16,77 @@ export const ENERGY = {
   TDEE_WINDOW_DAYS_STABLE: 28,
 } as const;
 
+/**
+ * Absolute fallbacks, quoted from the original blueprint at ~82 kg bodyweight.
+ *
+ * These are only used before there is a weight to scale from. Everything the app
+ * actually shows comes from `lib/targets.ts`, which derives calories from
+ * measured expenditure and rates from bodyweight — see PHASE_RULES below.
+ */
 export const PHASE_TARGETS = {
   cut: { kcal: 2300, protein_g: 170, weekly_change_kg: [-0.55, -0.4] },
   maintain: { kcal: 2800, protein_g: 165, weekly_change_kg: [-0.2, 0.2] },
   gain: { kcal: 3050, protein_g: 165, weekly_change_kg: [0.12, 0.25] },
   mini_cut: { kcal: 2300, protein_g: 175, weekly_change_kg: [-0.7, -0.45] },
+  recomp: { kcal: 2800, protein_g: 180, weekly_change_kg: [-0.15, 0.15] },
 } as const;
+
+/**
+ * The real targets: rates as a percentage of *current* bodyweight, protein as
+ * g/kg, calories as an offset from measured expenditure.
+ *
+ * A fixed 2,300 kcal is only correct for one person at one weight on one day.
+ * Losing 0.5 kg/week is a gentle deficit at 100 kg and an aggressive one at 60 kg,
+ * so the rate that actually protects muscle is proportional. These percentages
+ * reproduce the blueprint's original kg figures at ~82 kg and then keep pace as
+ * the weight changes.
+ */
+export const PHASE_RULES = {
+  cut: {
+    /** Weekly change as % of bodyweight: −0.49%/wk at 82 kg is −0.40 kg. */
+    weekly_pct_bw: [-0.67, -0.49],
+    protein_g_per_kg: 2.1,
+    label: 'Cut',
+    blurb: 'Lose fat, hold muscle',
+  },
+  maintain: {
+    weekly_pct_bw: [-0.25, 0.25],
+    protein_g_per_kg: 2.0,
+    label: 'Maintain',
+    blurb: 'Hold weight steady',
+  },
+  gain: {
+    weekly_pct_bw: [0.15, 0.3],
+    protein_g_per_kg: 2.0,
+    label: 'Lean gain',
+    blurb: 'Add muscle, limit fat',
+  },
+  mini_cut: {
+    weekly_pct_bw: [-0.85, -0.55],
+    protein_g_per_kg: 2.2,
+    label: 'Mini-cut',
+    blurb: 'Short, sharper deficit',
+  },
+  recomp: {
+    /** Scale weight barely moves; the change shows up in the tape and the mirror. */
+    weekly_pct_bw: [-0.18, 0.18],
+    protein_g_per_kg: 2.2,
+    label: 'Recomp',
+    blurb: 'Hold weight, trade fat for muscle',
+  },
+} as const;
+
+/** Protein is capped in absolute terms — past this there is no further return. */
+export const PROTEIN_G_PER_KG_MAX = 2.4;
+
+/** Never prescribe fewer calories than this, whatever the arithmetic says. */
+export const MIN_SAFE_KCAL = 1500;
+
+/**
+ * Drift that counts as "no longer maintaining", as % of bodyweight per week.
+ * 0.5% is 0.41 kg at 82 kg — the blueprint's original 0.4 kg flag, now scaling.
+ */
+export const MAINTAIN_DRIFT_PCT_BW = 0.5;
 
 export const TRANSITIONS = {
   END_CUT_BF: 14,

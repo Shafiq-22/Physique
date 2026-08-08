@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NumberStepper } from '../components/NumberStepper';
+import { RotaryDial } from '../components/RotaryDial';
 import { ScalePicker } from '../components/ScalePicker';
 import { Toggle } from '../components/Toggle';
 import { useDailyLogs, useSaveDailyLog } from '../hooks/useDailyLog';
@@ -98,7 +98,7 @@ export default function Log() {
     <form onSubmit={submit} className="space-y-4 pt-1">
       <p className="text-sm muted">{shortLabel(date)}</p>
 
-      <NumberStepper
+      <RotaryDial
         label="Weight"
         unit="kg"
         value={weight}
@@ -111,20 +111,19 @@ export default function Log() {
         autoFocus
       />
 
-      <NumberStepper
+      <RotaryDial
         label="Sleep"
         unit="hours"
         value={sleep}
         onChange={setSleep}
         step={0.25}
-        coarseStep={0.5}
         decimals={2}
         min={0}
         max={16}
         placeholder={previous?.sleep_hours ?? null}
       />
 
-      <NumberStepper
+      <RotaryDial
         label="Resting heart rate"
         unit="bpm"
         value={rhr}
@@ -136,13 +135,12 @@ export default function Log() {
         placeholder={previous?.resting_hr ?? null}
       />
 
-      <NumberStepper
+      <RotaryDial
         label="HRV"
         unit="ms"
         value={hrv}
         onChange={setHrv}
         step={1}
-        coarseStep={5}
         decimals={0}
         min={5}
         max={250}
@@ -152,12 +150,11 @@ export default function Log() {
       <ScalePicker label="Energy" value={energy} onChange={setEnergy} hint="1–10" />
       <ScalePicker label="Mood" value={mood} onChange={setMood} hint="1–10" />
 
-      <NumberStepper
+      <RotaryDial
         label="Steps"
         value={steps}
         onChange={setSteps}
         step={500}
-        coarseStep={1000}
         decimals={0}
         min={0}
         max={80000}
@@ -180,25 +177,24 @@ export default function Log() {
 
       {showExact ? (
         <>
-          <NumberStepper
+          <RotaryDial
             label="Exact intake"
             unit="kcal"
             value={kcal}
             onChange={setKcal}
             step={10}
-            coarseStep={50}
+            degreesPerStep={6}
             decimals={0}
             min={0}
             max={10000}
             placeholder={targetKcal}
           />
-          <NumberStepper
+          <RotaryDial
             label="Exact protein"
             unit="g"
             value={protein}
             onChange={setProtein}
             step={5}
-            coarseStep={10}
             decimals={0}
             min={0}
             max={500}

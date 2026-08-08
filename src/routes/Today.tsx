@@ -9,6 +9,7 @@ import { TrendCard } from '../components/TrendCard';
 import { VerdictCard } from '../components/VerdictCard';
 import { ReadinessRing } from '../components/ReadinessRing';
 import { TdeeCard } from '../components/TdeeCard';
+import { TargetsCard } from '../components/TargetsCard';
 import { shortLabel, todayISO } from '../lib/dates';
 import { PHASE_TARGETS } from '../lib/config';
 
@@ -17,6 +18,7 @@ const PHASE_LABEL: Record<string, string> = {
   maintain: 'Maintaining',
   gain: 'Lean gain',
   mini_cut: 'Mini-cut',
+  recomp: 'Recomp',
 };
 
 export default function Today() {
@@ -51,7 +53,7 @@ export default function Today() {
             {PHASE_LABEL[phase.phase_type] ?? phase.phase_type}
           </span>
           <span className="text-xs muted">
-            {phase.target_kcal ?? PHASE_TARGETS[phase.phase_type].kcal} kcal · since{' '}
+            {engine.targets?.kcal ?? phase.target_kcal ?? PHASE_TARGETS[phase.phase_type].kcal} kcal · since{' '}
             {shortLabel(phase.start_date)}
           </span>
         </div>
@@ -82,6 +84,8 @@ export default function Today() {
       )}
 
       {engine.readiness ? <ReadinessRing readiness={engine.readiness} /> : null}
+
+      {engine.targets ? <TargetsCard targets={engine.targets} /> : null}
 
       {engine.weekly ? (
         <VerdictCard verdict={engine.weekly} eyebrow="This week" />

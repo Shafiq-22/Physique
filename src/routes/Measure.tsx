@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NumberStepper } from '../components/NumberStepper';
+import { RotaryDial } from '../components/RotaryDial';
 import { useMeasurements, useSaveMeasurement, useSaveBenchmark } from '../hooks/useMeasurements';
 import { useUploadPhoto } from '../hooks/usePhotos';
 import { shortLabel, todayISO } from '../lib/dates';
@@ -84,14 +84,13 @@ export default function Measure() {
 
       <form onSubmit={submit} className="space-y-4">
         {FIELDS.map((f) => (
-          <NumberStepper
+          <RotaryDial
             key={f.key as string}
             label={f.label}
             unit="cm"
             value={values[f.key as string] ?? null}
             onChange={(v) => setValues((prev) => ({ ...prev, [f.key as string]: v }))}
             step={0.1}
-            coarseStep={0.5}
             decimals={1}
             min={10}
             max={250}
@@ -99,13 +98,12 @@ export default function Measure() {
           />
         ))}
 
-        <NumberStepper
+        <RotaryDial
           label="Body fat"
           unit="%"
           value={bodyfat}
           onChange={setBodyfat}
           step={0.1}
-          coarseStep={0.5}
           decimals={1}
           min={3}
           max={60}

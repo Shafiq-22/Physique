@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSaveWorkout, useWorkouts, useWorkoutSets, type DraftSet } from '../hooks/useWorkouts';
 import { buildHistory, detectPR, normaliseExercise } from '../lib/workouts';
+import { ExercisePicker } from '../components/ExercisePicker';
+import { findExercise, pushPullBalance, type Equipment, type Exercise } from '../lib/exerciseLibrary';
 import { ScalePicker } from '../components/ScalePicker';
 import { shortLabel } from '../lib/dates';
 import type { Workout as WorkoutRow, WorkoutSet } from '../lib/types';
@@ -34,6 +36,32 @@ export default function Workout() {
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   const [sets, setSets] = useState<DraftSet[]>([blankSet()]);
+  /** Which set the picker is filling, or null when it is closed. */
+  const [pickingFor, setPickingFor] = useState<number | null>(null);
+  const [equipment, setEquipment] = useState<Equipment[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vector:equipment') ?? '[]') as Equipment[];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveEquipment = (next: Equipment[]): void => {
+    setEquipment(next);
+    // Your gym does not change between sets, so remember it across sessions.
+    try {
+      localStorage.setItem('vector:equipment', JSON.stringify(next));
+    } catch {
+      /* private mode — filtering just resets next launch */
+    }
+  };
+
+  const pickExercise = (e: Exercise): void => {
+    if (pickingFor !== null) update(pickingFor, { exercise_name: e.name });
+    setPickingFor(null);
+  };
+
+  const balance = pushPullBalance(sets.map((s) => s.exercise_name));
 
   const history = useMemo(() => buildHistory(allSets ?? []), [allSets]);
 
@@ -95,6 +123,15 @@ export default function Workout() {
 
   return (
     <form onSubmit={submit} className="space-y-4 pt-1">
+      {pickingFor !== null ? (
+        <ExercisePicker
+          onPick={pickExercise}
+          onClose={() => setPickingFor(null)}
+          equipment={equipment}
+          onEquipmentChange={saveEquipment}
+        />
+      ) : null}
+
       <div className="card">
         <span className="text-sm font-medium text-slate-300">Session</span>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -147,14 +184,23 @@ export default function Workout() {
               </div>
             </div>
 
-            <input
-              value={s.exercise_name}
-              onChange={(e) => update(i, { exercise_name: e.target.value })}
-              placeholder="Exercise"
-              aria-label={`Exercise for set ${i + 1}`}
-              list="exercise-names"
-              className="w-full rounded-xl bg-ink-900 px-3 py-2.5 outline-none ring-1 ring-ink-700 focus:ring-2 focus:ring-accent/60"
-            />
+            <div className="flex gap-2">
+              <input
+                value={s.exercise_name}
+                onChange={(e) => update(i, { exercise_name: e.target.value })}
+                placeholder="Exercise"
+                aria-label={`Exercise for set ${i + 1}`}
+                list="exercise-names"
+                className="min-w-0 flex-1 rounded-xl bg-ink-900 px-3 py-2.5 outline-none ring-1 ring-ink-700 focus:ring-2 focus:ring-accent/60"
+              />
+              <button
+                type="button"
+                onClick={() => setPickingFor(i)}
+                className="shrink-0 rounded-xl bg-ink-700 px-3 text-sm font-medium text-slate-200"
+              >
+                Browse
+              </button>
+            </div>
 
             <div className="flex gap-2">
               <NumField
@@ -186,6 +232,21 @@ export default function Workout() {
             />
 
             {pr.isPr ? <p className="text-xs text-accent">{pr.reason}</p> : null}
+            {(() => {
+              const lib = findExercise(s.exercise_name);
+              if (!lib) return null;
+              const timed = lib.repRange[0] === lib.repRange[1];
+              const outOfRange =
+                !timed && s.reps !== null && (s.reps < lib.repRange[0] || s.reps > lib.repRange[1]);
+              return (
+                <p className={`text-xs ${outOfRange ? 'text-amber-300' : 'muted'}`}>
+                  {timed
+                    ? 'Timed hold — log seconds in the reps field.'
+                    : `Typical range ${lib.repRange[0]}–${lib.repRange[1]} reps.`}
+                  {outOfRange ? ' You are outside it — deliberate, or a typo?' : ''}
+                </p>
+              );
+            })()}
           </div>
         );
       })}
@@ -196,6 +257,13 @@ export default function Workout() {
           <option key={normaliseExercise(n)} value={n} />
         ))}
       </datalist>
+
+      {balance.push + balance.pull >= 3 && Math.abs(balance.push - balance.pull) >= 3 ? (
+        <p className="px-1 text-xs text-amber-300">
+          {balance.push} pushing sets to {balance.pull} pulling. Long-run imbalance is what pulls
+          shoulders forward — worth evening up.
+        </p>
+      ) : null}
 
       <button type="button" onClick={addSet} className="btn-ghost w-full">
         + Add set
