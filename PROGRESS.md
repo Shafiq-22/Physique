@@ -201,6 +201,22 @@ React re-renders, and a closure over `value` makes every one of them compute fro
 the same stale number. Ten rapid presses collapsed into one. Verified fixed by
 driving it in a headless browser.
 
+**Sign-in is a typed code, not a magic link.** An emailed link cannot reach an
+installed iOS PWA: tapping it opens Safari, a separate browsing context with its
+own storage, so the session is created somewhere the app cannot read. PKCE
+compounds it, since the code verifier belongs to whichever context began the
+sign-in. A 6-digit code is exchanged inside the app, so both halves happen in the
+same context. `autocomplete="one-time-code"` lets iOS offer it straight from Mail.
+
+This needs `{{ .Token }}` in the Supabase Magic Link email template — the default
+only carries the link. Because that is a dashboard change the app cannot make or
+verify, **password sign-in is offered alongside it** as the zero-configuration
+path, with "Set password" in Settings.
+
+**The app reloads itself when a new service worker takes over.** With no address
+bar, an installed PWA can otherwise sit on a stale build indefinitely — which
+already happened once during setup.
+
 **Chart colours are identity, not status.** The trend line is blue (`#3987e5`),
 not the app's green accent — a green line would imply "good" regardless of what
 the data says. Raw daily points are deliberately recessive gray behind it.
