@@ -16,12 +16,13 @@ Running log of what is built, what was decided, and what is deliberately left.
 | 5 — Full engine + Weekly Review | ✅ Built |
 | 6 — Weight-derived targets, rotary dials, exercise library | ✅ Built |
 | 7 — The training programme, driving the app | ✅ Built |
+| 8 — The diet plan, driving intake logging | ✅ Built |
 
 Live at `physique-green.vercel.app`, backed by Supabase project `Vector`
 (`esfxrnqwkulqhxwgyezb`).
 
 **Verified here:** `npm run build` passes (typecheck + bundle + service worker),
-`npm test` passes 102/102, and every screen's components were rendered and driven
+`npm test` passes 116/116, and every screen's components were rendered and driven
 in a headless browser against mock data — including scripted drags, keypresses
 and rapid input on the dial.
 
@@ -126,6 +127,41 @@ sitting at week 1 forever.
 
 ---
 
+## The diet plan (Phase 8)
+
+The three-meal plan is in as data, and it solves a problem the app had been
+carrying since Phase 2.
+
+**Because the plan is fixed, ticking it IS calorie logging.** "Ate meal 2,
+swapped to tuna" fully determines the macros, so three taps produce exact kcal
+and protein. Those get written to the existing `kcal_intake` / `protein_g`
+columns, which means **adaptive TDEE finally gets fed** — it needs 10 days of
+exact intake, and nobody sustains a weighing habit that long. Everything
+downstream (compliance, the weekly verdict, the derived targets) improves for
+free, with no change to any of those rules.
+
+A skipped meal counts as skipped. Assuming the full plan would quietly corrupt
+the expenditure estimate everything else depends on.
+
+**Verdicts are translated into food.** `foodActionsFor` maps a decision-engine
+verdict onto this plan's levers: "Too fast — add 200 kcal" becomes "add a 4th
+chapati (+120)" or "+30 g oats (+115)"; a stall becomes "drop the olive oil
+(−120)", "trim rice to 200 g (−65)", or "leave the food alone and add 1,500
+steps". The engine decides direction and size; the diet supplies the actions.
+"Add 200 kcal" is not something you can act on at 19:45.
+
+**Prep is surfaced on the day it matters** — Sunday's 45 minutes and
+Wednesday's 10, on Today, because the whole plan rests on them. Breakfast is
+zero minutes only because Sunday happened.
+
+**Swaps are macro-equivalent by design**, which a test enforces — the plan
+rotates them precisely so the numbers hold while the food changes.
+
+Water joins the daily log with the 3.5–4.5 L target and the Gulf sodium note.
+Two new nullable columns: `daily_logs.meals` (jsonb) and `daily_logs.water_l`.
+
+---
+
 ## Screen map
 
 Five tabs. Workout and Measure are entered from Today and Progress
@@ -137,7 +173,7 @@ that needs a second row stops being a tab bar.
 | `/` Today | Trend, readiness, verdicts, learned TDEE, entry points |
 | `/log` Log | The 30-second daily entry |
 | `/workout` | Today's session pre-filled, with per-exercise progression targets |
-| `/program` Train | Week shape, the two rules, ladders, mobility, deload protocol |
+| `/program` Plan | Two panes: training reference and the diet plan |
 | `/measure` | Tape, body fat, photos, benchmarks |
 | `/progress` | Long trend, proportions, sparklines, photo compare, PRs |
 | `/review` | Week aggregates, all verdicts, acknowledge-and-file |

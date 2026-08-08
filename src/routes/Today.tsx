@@ -11,6 +11,9 @@ import { ReadinessRing } from '../components/ReadinessRing';
 import { TdeeCard } from '../components/TdeeCard';
 import { TargetsCard } from '../components/TargetsCard';
 import { SessionCard } from '../components/SessionCard';
+import { FoodActionCard } from '../components/FoodActionCard';
+import { PrepCard } from '../components/PrepCard';
+import { MEALS, totalsFor } from '../lib/diet';
 import { useProfile } from '../hooks/useProfile';
 import { programWeeksElapsed } from '../hooks/useProgram';
 import { intervalForWeek, isHighRiskWindow, sessionForDate } from '../lib/program';
@@ -43,6 +46,7 @@ export default function Today() {
   const session = sessionForDate(today);
   const weeks = programWeeksElapsed(profile, logs);
   const trainedToday = (workouts ?? []).some((w) => w.performed_at.slice(0, 10) === today);
+  const mealsToday = totalsFor(todayLog?.meals ?? {});
 
   return (
     <div className="space-y-4 pt-1">
@@ -116,6 +120,8 @@ export default function Today() {
         </section>
       ) : null}
 
+      {engine.weekly ? <FoodActionCard verdict={engine.weekly} /> : null}
+
       {engine.transition ? (
         <VerdictCard verdict={engine.transition} eyebrow="Phase" />
       ) : null}
@@ -123,6 +129,33 @@ export default function Today() {
       {engine.deload && engine.deload.code !== 'no_deload' ? (
         <VerdictCard verdict={engine.deload} eyebrow="Recovery" />
       ) : null}
+
+      <Link to="/log" className="card block" aria-label="Meals today">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-sm font-medium muted">Meals</span>
+          <span className="text-xs muted tabular-nums">
+            {mealsToday.mealsEaten}/{MEALS.length}
+          </span>
+        </div>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">
+          {mealsToday.kcal}
+          <span className="ml-1 text-sm font-normal muted">kcal</span>
+          <span className="ml-3 text-lg">{mealsToday.protein}</span>
+          <span className="ml-1 text-sm font-normal muted">g protein</span>
+        </p>
+        <div className="mt-2 flex gap-1.5">
+          {MEALS.map((m) => (
+            <span
+              key={m.id}
+              className={`h-1.5 flex-1 rounded-full ${
+                (todayLog?.meals ?? {})[m.id]?.eaten ? 'bg-accent' : 'bg-ink-700'
+              }`}
+            />
+          ))}
+        </div>
+      </Link>
+
+      <PrepCard date={today} />
 
       <TdeeCard
         adaptive={engine.tdee}

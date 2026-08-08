@@ -1,5 +1,7 @@
 /** Shared types mirroring the Postgres schema in `supabase/migrations`. */
 
+import type { MealSelection } from './diet';
+
 export type PhaseType = 'cut' | 'maintain' | 'gain' | 'mini_cut' | 'recomp';
 export type Pose = 'front' | 'side' | 'back';
 export type RecommendationScope = 'weekly' | 'monthly' | 'deload' | 'alert';
@@ -49,6 +51,9 @@ export interface DailyLog {
   protein_hit: boolean | null;
   intrusive_food_thoughts: boolean | null;
   cold_hands_feet: boolean | null;
+  /** Which planned meals were eaten, and any swaps. Drives kcal_intake. */
+  meals: MealSelection | null;
+  water_l: number | null;
   notes: string | null;
   created_at?: string;
 }

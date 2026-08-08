@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 const TABS = [
   { to: '/', label: 'Today', end: true },
   { to: '/log', label: 'Log', end: false },
-  { to: '/program', label: 'Train', end: false },
+  { to: '/program', label: 'Plan', end: false },
   { to: '/progress', label: 'Progress', end: false },
   { to: '/review', label: 'Review', end: false },
 ] as const;

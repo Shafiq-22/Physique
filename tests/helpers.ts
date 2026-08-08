@@ -24,6 +24,8 @@ export const makeLog = (date: ISODate, fields: Partial<DailyLog> = {}): DailyLog
   protein_hit: null,
   intrusive_food_thoughts: false,
   cold_hands_feet: false,
+  meals: null,
+  water_l: null,
   notes: null,
   ...fields,
 });

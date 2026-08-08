@@ -146,6 +146,7 @@ src/
     workouts.ts        PURE: PR detection, strength trend
     program.ts         the training plan as data — sessions, ladders, cardio
     progression.ts     PURE: double progression + the 3-week stall rule
+    diet.ts            the 3-meal plan; derives exact intake from meal ticks
     targets.ts         PURE: weight-derived calories, protein, rate bands
     exerciseLibrary.ts exercises by body part, equipment and movement pattern
     offlineQueue.ts    IndexedDB write queue + flush on reconnect
@@ -186,7 +187,7 @@ import) and the `lib/importers/` seam left for them.
 npm test
 ```
 
-102 tests cover the pure layer, including all seven worked cases from the spec:
+116 tests cover the pure layer, including all seven worked cases from the spec:
 EMA smoothing across a gap, adaptive TDEE (≈2,575 kcal, and `null` below 10 intake
 days), the four weekly cut branches, both phase transitions, deload flag counting
 and the 42/56-day windows, the overreaching trigger, and the Adonis ratio — plus

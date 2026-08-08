@@ -18,6 +18,8 @@ import {
 } from '../lib/program';
 import { shortLabel, todayISO } from '../lib/dates';
 import { programWeeksElapsed } from '../hooks/useProgram';
+import { DietPlan } from '../components/DietPlan';
+import { useActivePhase } from '../hooks/usePhase';
 
 /**
  * The programme, as reference.
@@ -31,6 +33,8 @@ export default function Program() {
   const { data: logs } = useDailyLogs();
   const saveProfile = useSaveProfile();
   const [openLadder, setOpenLadder] = useState<LadderKey | null>(null);
+  const [pane, setPane] = useState<'training' | 'diet'>('training');
+  const { data: phase } = useActivePhase();
 
   const weeks = programWeeksElapsed(profile, logs);
   const interval = intervalForWeek(weeks);
@@ -38,6 +42,27 @@ export default function Program() {
 
   return (
     <div className="space-y-4 pt-1">
+      {/* Two plans, one reference tab — they are read, not used daily. */}
+      <div className="flex gap-2">
+        {(['training', 'diet'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-pressed={pane === p}
+            onClick={() => setPane(p)}
+            className={`h-11 flex-1 rounded-xl text-sm font-semibold capitalize transition ${
+              pane === p ? 'bg-accent text-ink-900' : 'bg-ink-700 text-slate-300'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {pane === 'diet' ? <DietPlan phase={phase?.phase_type ?? null} /> : null}
+
+      {pane === 'training' ? (
+      <>
       <section className="card">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="font-medium">Hybrid Athletic</h2>
@@ -206,6 +231,8 @@ export default function Program() {
       <Link to="/workout" className="btn-primary block w-full text-center">
         Log a session
       </Link>
+      </>
+      ) : null}
     </div>
   );
 }
